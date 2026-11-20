@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Liquid Widgets</string>
+    <string name="app_tagline">Real Liquid Glass Widgets for Android 17</string>
+    <string name="media_listener_label">Liquid Widgets Media Sync</string>
+
+    <string name="widget_clock_name">Liquid Clock</string>
+    <string name="widget_clock_desc">Refractive liquid clock with morphing numerals, rising minute fill, and floating bubble seconds.</string>
+
+    <string name="widget_battery_name">Liquid Battery</string>
+    <string name="widget_battery_desc">Live battery level liquid tank with waves, charging wattage, temperature, and rising bubbles.</string>
+
+    <string name="widget_screentime_name">Screen Time</string>
+    <string name="widget_screentime_desc">On-device usage liquid ring and top 3 app droplets with direct launch.</string>
+
+    <string name="widget_weather_name">Liquid Weather</string>
+    <string name="widget_weather_desc">Real-time weather with glass rain droplets, solar refraction glow, snow, and hourly bubbles.</string>
+
+    <string name="widget_calendar_name">Calendar &amp; Agenda</string>
+    <string name="widget_calendar_desc">Next 3 events in floating glass pills with a shrinking countdown droplet.</string>
+
+    <string name="widget_music_name">Liquid Music Player</string>
+    <string name="widget_music_desc">Album art refracted through thick glass with live liquid audio waves and glass controls.</string>
+
+    <string name="widget_steps_name">Steps &amp; Health</string>
+    <string name="widget_steps_desc">Daily step goal water tank with bobbing droplet, distance, and calories.</string>
+
+    <string name="widget_system_name">System Monitor</string>
+    <string name="widget_system_desc">Three sloshing liquid gauges for live CPU, RAM, and Storage usage.</string>
+
+    <string name="widget_focus_name">Focus Timer &amp; Notes</string>
+    <string name="widget_focus_desc">Draining Pomodoro droplet timer and floating ink quick notes.</string>
+
+    <string name="widget_quickpill_name">Quick Glass Pill</string>
+    <string name="widget_quickpill_desc">Liquid toggle bubbles for Wi-Fi, Bluetooth, Flashlight, DND, and instant app search.</string>
+</resources>

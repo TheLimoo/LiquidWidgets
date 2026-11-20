@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="liquid_aqua">#FF38E8FF</color>
+    <color name="liquid_deep">#FF061322</color>
+    <color name="liquid_surface">#FF0D2137</color>
+</resources>

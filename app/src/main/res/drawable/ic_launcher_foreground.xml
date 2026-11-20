@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Chromatic Rim (Cyan/Blue offset) -->
+    <path
+        android:fillColor="#4400F0FF"
+        android:pathData="M54,20 C54,20 79,48 79,64.5 C79,78.5 67.8,89 54,89 C40.2,89 29,78.5 29,64.5 C29,48 54,20 54,20 Z" />
+    <!-- Main Liquid Glass Droplet Body -->
+    <path android:pathData="M54,22 C54,22 77,49 77,64.5 C77,77.2 66.7,87 54,87 C41.3,87 31,77.2 31,64.5 C31,49 54,22 54,22 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="46"
+                android:centerY="46"
+                android:gradientRadius="48"
+                android:type="radial">
+                <item android:color="#EEB8F8FF" android:offset="0.0" />
+                <item android:color="#CC48D6FF" android:offset="0.45" />
+                <item android:color="#DD126EA8" android:offset="0.82" />
+                <item android:color="#EE0B3960" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Bottom Refractive Caustic Glow -->
+    <path
+        android:fillColor="#667BF5FF"
+        android:pathData="M38,68 C42,79 66,79 70,68 C65,75 43,75 38,68 Z" />
+    <!-- Top-Left Specular Glass Highlight -->
+    <path
+        android:fillColor="#E6FFFFFF"
+        android:pathData="M48,37 C43,44 38.5,53 38.5,60 C38.5,62 41.5,62 42,59 C42.8,53 46.2,45 50.5,39.5 C52,37.6 49.5,35.2 48,37 Z" />
+    <!-- Floating Internal Bubble -->
+    <path
+        android:fillColor="#BBFFFFFF"
+        android:pathData="M44,67m-3.2,0a3.2,3.2 0,1 1,6.4 0a3.2,3.2 0,1 1,-6.4 0" />
+    <path
+        android:fillColor="#88FFFFFF"
+        android:pathData="M61,58m-2.0,0a2.0,2.0 0,1 1,4.0 0a2.0,2.0 0,1 1,-4.0 0" />
+</vector>

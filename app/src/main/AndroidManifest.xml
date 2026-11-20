@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Weather API (Open-Meteo, free, no key) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Screen Time widget (on-device UsageStatsManager) -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Calendar / Agenda widget -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- Steps & Health widget -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
+    <!-- Quick Glass Pill: Bluetooth, Wi-Fi, DND, Flashlight -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+
+    <!-- Boot reschedule for WorkManager & battery-aware receivers -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Query installed apps for Screen Time droplet launch & Quick Pill App Search -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:name=".LiquidWidgetsApp"
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LiquidWidgets">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Active Media Session listener for Music Player widget -->
+        <service
+            android:name=".data.providers.LiquidMediaListenerService"
+            android:exported="false"
+            android:label="@string/media_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- Event-driven System / Battery / Wallpaper / Screen Receiver -->
+        <receiver
+            android:name=".receivers.LiquidSystemReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.WALLPAPER_CHANGED" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+                <action android:name="android.os.action.POWER_SAVE_MODE_CHANGED" />
+                <action android:name="android.intent.action.CONFIGURATION_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Interactive Widget Action Receiver (Touch Ripple + Quick Toggles + Focus + Music) -->
+        <receiver
+            android:name=".receivers.WidgetActionReceiver"
+            android:exported="false" />
+
+        <!-- 1. Liquid Clock Widget -->
+        <receiver
+            android:name=".widgets.LiquidClockWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_clock_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_clock" />
+        </receiver>
+
+        <!-- 2. Liquid Battery Widget -->
+        <receiver
+            android:name=".widgets.LiquidBatteryWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_battery_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_battery" />
+        </receiver>
+
+        <!-- 3. Screen Time Widget -->
+        <receiver
+            android:name=".widgets.LiquidScreenTimeWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_screentime_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_screentime" />
+        </receiver>
+
+        <!-- 4. Liquid Weather Widget -->
+        <receiver
+            android:name=".widgets.LiquidWeatherWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_weather_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_weather" />
+        </receiver>
+
+        <!-- 5. Calendar / Agenda Widget -->
+        <receiver
+            android:name=".widgets.LiquidCalendarWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_calendar_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_calendar" />
+        </receiver>
+
+        <!-- 6. Music Player Widget -->
+        <receiver
+            android:name=".widgets.LiquidMusicWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_music_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_music" />
+        </receiver>
+
+        <!-- 7. Steps & Health Widget -->
+        <receiver
+            android:name=".widgets.LiquidStepsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_steps_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_steps" />
+        </receiver>
+
+        <!-- 8. System Monitor Widget -->
+        <receiver
+            android:name=".widgets.LiquidSystemWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_system_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_system" />
+        </receiver>
+
+        <!-- 9. Focus Timer & Notes Widget -->
+        <receiver
+            android:name=".widgets.LiquidFocusNotesWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_focus_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_focus" />
+        </receiver>
+
+        <!-- 10. Quick Glass Pill Widget -->
+        <receiver
+            android:name=".widgets.LiquidQuickPillWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_quickpill_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_quickpill" />
+        </receiver>
+
+    </application>
+
+</manifest>
