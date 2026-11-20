@@ -8,7 +8,6 @@ import androidx.core.content.ContextCompat
 import com.liquidwidgets.app.liquidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -84,7 +83,9 @@ object WeatherDataProvider {
             }.getOrNull()
 
             if (freshJson != null) {
-                val wrapped = JSONObject(freshJson).apply { put("_label", label) }.toString()
+                // Attach the location label without org.json (Android-only class):
+                // the response is one JSON object, so append the field before its final '}'.
+                val wrapped = freshJson.trim().removeSuffix("}") + ",\"_label\":\"$label\"}"
                 store.setCachedWeatherJson(wrapped)
                 parseOpenMeteoJson(wrapped, isCached = false)?.let { return@withContext it }
             }
@@ -116,28 +117,28 @@ object WeatherDataProvider {
 
     internal fun parseOpenMeteoJson(raw: String, isCached: Boolean): WeatherSnapshot? {
         return runCatching {
-            val root = JSONObject(raw)
-            val current = root.getJSONObject("current")
-            val temp = current.optDouble("temperature_2m", 20.0).toInt()
-            val humidity = current.optInt("relative_humidity_2m", 50)
-            val wind = current.optDouble("wind_speed_10m", 8.0).toInt()
-            val code = current.optInt("weather_code", 0)
+            val root = MiniJson.parse(raw) as? JObj ?: return@runCatching null
+            val current = root.obj("current") ?: return@runCatching null
+            val temp = (current.num("temperature_2m") ?: 20.0).toInt()
+            val humidity = (current.num("relative_humidity_2m") ?: 50.0).toInt()
+            val wind = (current.num("wind_speed_10m") ?: 8.0).toInt()
+            val code = (current.num("weather_code") ?: 0.0).toInt()
             val (cond, label) = mapWmoCode(code)
-            val locLabel = root.optString("_label", "Local Weather")
+            val locLabel = root.str("_label") ?: "Local Weather"
 
-            val hourlyObj = root.optJSONObject("hourly")
-            val times = hourlyObj?.optJSONArray("time")
-            val temps = hourlyObj?.optJSONArray("temperature_2m")
-            val codes = hourlyObj?.optJSONArray("weather_code")
+            val hourlyObj = root.obj("hourly")
+            val times = hourlyObj?.arr("time")
+            val temps = hourlyObj?.arr("temperature_2m")
+            val codes = hourlyObj?.arr("weather_code")
 
             val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
             val bubbles = mutableListOf<HourlyBubble>()
             if (times != null && temps != null && codes != null) {
                 for (offset in 0 until 4) {
-                    val idx = (currentHour + offset).coerceIn(0, times.length() - 1)
-                    val timeStr = times.optString(idx, "").substringAfter('T', "00:00").take(5)
-                    val hTemp = temps.optDouble(idx, temp.toDouble()).toInt()
-                    val (hCond, _) = mapWmoCode(codes.optInt(idx, code))
+                    val idx = (currentHour + offset).coerceIn(0, times.size - 1)
+                    val timeStr = (times.strAt(idx) ?: "").substringAfter('T', "00:00").take(5)
+                    val hTemp = (temps.numAt(idx) ?: temp.toDouble()).toInt()
+                    val (hCond, _) = mapWmoCode((codes.numAt(idx) ?: code.toDouble()).toInt())
                     bubbles.add(HourlyBubble(if (offset == 0) "Now" else timeStr, hTemp, hCond))
                 }
             }

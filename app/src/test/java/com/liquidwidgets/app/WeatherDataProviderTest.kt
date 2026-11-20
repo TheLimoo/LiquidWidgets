@@ -42,4 +42,16 @@ class WeatherDataProviderTest {
         assertEquals(null, WeatherDataProvider.parseOpenMeteoJson("not json", isCached = false))
         assertEquals(null, WeatherDataProvider.parseOpenMeteoJson("{}", isCached = false))
     }
+
+    @Test
+    fun `mini json parses nested objects arrays and escapes`() {
+        val parsed = MiniJson.parse("""{"a":{"b":[1,2.5,"x\n"],"c":true},"d":null}""")
+        assertNotNull(parsed)
+        val root = parsed as JObj
+        assertEquals(2.5, root.obj("a")!!.arr("b")!!.numAt(1)!!, 0.001)
+        assertEquals("x\n", root.obj("a")!!.arr("b")!!.strAt(2))
+        assertEquals(true, (root.obj("a")!!.map["c"] as JBool).v)
+        assertEquals(null, MiniJson.parse("{bad"))
+        assertEquals(null, MiniJson.parse(""))
+    }
 }
