@@ -17,13 +17,13 @@ import com.liquidwidgets.app.receivers.WidgetActionReceiver
 class LiquidCalendarWidget : BaseLiquidGlanceWidget(WidgetType.CALENDAR) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = CalendarDataProvider.readTodayNextEvents(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.events.joinToString { it.id.toString() + it.title }}") { canvas, w, h, txt ->
                 if (!snap.hasPermission) {
                     MetaballSimulation.drawLiquidFillTank(
                         canvas, w, h, 0.28f, timeSec, config.theme.tintArgb.toInt(), config.theme.accentArgb.toInt(), 0.35f, 0.35f

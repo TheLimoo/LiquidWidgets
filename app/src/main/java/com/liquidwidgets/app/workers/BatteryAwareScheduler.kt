@@ -1,6 +1,9 @@
 package com.liquidwidgets.app.workers
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.hardware.display.DisplayManager
 import android.os.PowerManager
 import android.view.Display
@@ -10,7 +13,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
+import com.liquidwidgets.app.receivers.ClockTickReceiver
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.widgets.LiquidBatteryWidget
 import com.liquidwidgets.app.widgets.LiquidCalendarWidget
@@ -28,6 +32,23 @@ import java.util.concurrent.TimeUnit
 object BatteryAwareScheduler {
 
     private const val PERIODIC_WORK_NAME = "liquid_widgets_periodic_sync"
+
+    /**
+     * Arms a one-shot, non-waking alarm for the next minute boundary. The
+     * receiver re-arms itself on every tick, so the clock keeps ticking
+     * once a minute without a persistent service or a waking alarm.
+     */
+    fun scheduleMinuteTicks(context: Context) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val intent = Intent(context, ClockTickReceiver::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val now = System.currentTimeMillis()
+        val nextMinute = ((now / 60_000L) + 1) * 60_000L
+        runCatching { am.set(AlarmManager.RTC, nextMinute, pi) }
+    }
 
     fun schedulePeriodicUpdates(context: Context) {
         val request = PeriodicWorkRequestBuilder<LiquidWidgetSyncWorker>(
@@ -48,7 +69,7 @@ object BatteryAwareScheduler {
     suspend fun shouldThrottleAnimations(context: Context): Boolean {
         if (!isScreenInteractive(context)) return true
         val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        val pauseSetting = LiquidWidgetsApp.instance.configStore.observePauseOnBatterySaver().first()
+        val pauseSetting = context.liquidApp().configStore.observePauseOnBatterySaver().first()
         return pauseSetting && (pm?.isPowerSaveMode == true)
     }
 
@@ -91,7 +112,7 @@ class LiquidWidgetSyncWorker(
         if (!BatteryAwareScheduler.isScreenInteractive(applicationContext)) {
             return Result.success()
         }
-        LiquidWidgetsApp.instance.wallpaperSampler.refreshFromWallpaper()
+        applicationContext.liquidApp().wallpaperSampler.refreshFromWallpaper()
         BatteryAwareScheduler.updateAllWidgets(applicationContext)
         return Result.success()
     }

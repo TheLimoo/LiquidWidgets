@@ -17,15 +17,16 @@ import kotlin.math.sin
 class LiquidSystemWidget : BaseLiquidGlanceWidget(WidgetType.SYSTEM) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = SystemStatsDataProvider.read(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.cpuPercent}|${snap.ramPercent}|${snap.storagePercent}") { canvas, w, h, txt ->
+                // CPU is null when /proc/stat is blocked: show Unavailable, never a fake %.
                 val gauges = listOf(
-                    Triple("CPU", snap.cpuPercent, Color.parseColor("#38E8FF")),
+                    Triple("CPU", snap.cpuPercent ?: -1, Color.parseColor("#38E8FF")),
                     Triple("RAM", snap.ramPercent, Color.parseColor("#B388FF")),
                     Triple("DISK", snap.storagePercent, Color.parseColor("#52FFA8"))
                 )
@@ -60,7 +61,7 @@ class LiquidSystemWidget : BaseLiquidGlanceWidget(WidgetType.SYSTEM) {
 
                     txt.textAlign = Paint.Align.CENTER
                     txt.textSize = (h * 0.105f).coerceIn(14f, 24f)
-                    canvas.drawText("$pct%", left + tubeW * 0.5f, topY + tubeH + h * 0.12f, txt)
+                    canvas.drawText(if (pct < 0) "—" else "$pct%", left + tubeW * 0.5f, topY + tubeH + h * 0.12f, txt)
                     txt.alpha = 200
                     txt.textSize = (h * 0.085f).coerceIn(12f, 19f)
                     canvas.drawText(label, left + tubeW * 0.5f, topY + tubeH + h * 0.22f, txt)
@@ -70,7 +71,7 @@ class LiquidSystemWidget : BaseLiquidGlanceWidget(WidgetType.SYSTEM) {
 
             GlassBitmapSurface(
                 bitmap = bmp,
-                contentDescription = "System CPU ${snap.cpuPercent}% RAM ${snap.ramPercent}% Storage ${snap.storagePercent}%",
+                contentDescription = "System CPU ${snap.cpuPercent?.let { "$it%" } ?: "unavailable"} RAM ${snap.ramPercent}% Storage ${snap.storagePercent}%",
                 onTap = broadcastAction(context, WidgetActionReceiver.ACTION_OPEN_SYSTEM)
             )
         }

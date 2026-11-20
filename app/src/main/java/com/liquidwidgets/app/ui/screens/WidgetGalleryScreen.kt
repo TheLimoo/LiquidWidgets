@@ -33,7 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.ui.components.LiveLiquidWidgetPreview
@@ -54,7 +54,7 @@ fun WidgetGalleryScreen(
     onEditWidget: (WidgetType) -> Unit
 ) {
     val context = LocalContext.current
-    val app = LiquidWidgetsApp.instance
+    val app = LocalContext.current.liquidApp()
     val palette by app.wallpaperSampler.palette.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {

@@ -1,11 +1,16 @@
 package com.liquidwidgets.app.engine
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RadialGradient
+import android.graphics.Rect
 import android.graphics.Shader
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -149,14 +154,12 @@ object MetaballSimulation {
         }
     }
 
-    fun drawLiquidDroplet(
+    private fun drawDropletBody(
         canvas: Canvas,
         cx: Float,
         cy: Float,
         radius: Float,
-        tintColor: Int,
-        label: String? = null,
-        textColor: Int = Color.WHITE
+        tintColor: Int
     ) {
         val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = RadialGradient(
@@ -192,7 +195,18 @@ object MetaballSimulation {
             cy - radius * 0.30f,
             specPaint
         )
+    }
 
+    fun drawLiquidDroplet(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        tintColor: Int,
+        label: String? = null,
+        textColor: Int = Color.WHITE
+    ) {
+        drawDropletBody(canvas, cx, cy, radius, tintColor)
         if (!label.isNullOrEmpty()) {
             val txtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = textColor
@@ -203,5 +217,59 @@ object MetaballSimulation {
             val yOffset = (txtPaint.descent() + txtPaint.ascent()) / 2f
             canvas.drawText(label, cx, cy - yOffset, txtPaint)
         }
+    }
+
+    /**
+     * Droplet with a vector-drawable icon instead of a text glyph. Emoji and
+     * symbol glyphs (bolt, play, pause, next) do not render reliably in
+     * RemoteViews/Canvas text, so controls use real drawables.
+     */
+    fun drawIconDroplet(
+        context: Context,
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        tintColor: Int,
+        iconRes: Int,
+        iconTint: Int = Color.WHITE
+    ) {
+        drawDropletBody(canvas, cx, cy, radius, tintColor)
+        drawVectorIcon(context, canvas, iconRes, cx, cy, radius * 1.05f, iconTint)
+    }
+
+    /** Draw a vector drawable centred at (cx, cy) with the given diameter. */
+    fun drawVectorIcon(
+        context: Context,
+        canvas: Canvas,
+        iconRes: Int,
+        cx: Float,
+        cy: Float,
+        sizePx: Float,
+        tint: Int = Color.WHITE
+    ) {
+        val drawable = ContextCompat.getDrawable(context, iconRes) ?: return
+        val size = sizePx.coerceAtLeast(8f).toInt()
+        val bitmap: Bitmap = drawable.toBitmap(size, size)
+        val tinted = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(tinted)
+        c.drawBitmap(bitmap, 0f, 0f, null)
+        // Tint by keeping the drawable's alpha and painting the colour over it.
+        val mask = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = tint
+            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        }
+        c.drawRect(0f, 0f, size.toFloat(), size.toFloat(), mask)
+        bitmap.recycle()
+        canvas.drawBitmap(
+            tinted,
+            Rect(0, 0, size, size),
+            Rect(
+                (cx - size / 2f).toInt(), (cy - size / 2f).toInt(),
+                (cx + size / 2f).toInt(), (cy + size / 2f).toInt()
+            ),
+            null
+        )
+        tinted.recycle()
     }
 }

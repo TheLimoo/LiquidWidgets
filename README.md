@@ -27,6 +27,23 @@ A widget-first Android application built in **Kotlin**, **Jetpack Compose**, **J
 - **Battery & Performance**:
   - Zero persistent background service; uses `WorkManager` (15-min periodic sync) + event-driven `BroadcastReceiver`s (`LiquidSystemReceiver`), pausing animations when screen is off or Battery Saver is active.
 
+## v1.1.0 — Honesty & Live-ness Fixes (2026-11-21)
+
+- **Clock ticks every minute** via a non-waking `AlarmManager` alarm (`ClockTickReceiver`) — it was 15–30 min stale on the old 15-min WorkManager sync. Same tick drives the running Pomodoro timer. Minute-fill now uses minutes/60, not seconds/60.
+- **Weather has a 30-min cache TTL** and returns *no data* (widget shows "Set location") when there is no location and no cache. The hardcoded Columbus, Ohio 21°C fallback is deleted.
+- **Real wallpaper**: `WallpaperSampler` now crops the actual `WallpaperManager` bitmap as the AGSL backdrop; the palette gradient is only a fallback. Optional **live liquid-glass wallpaper** (`LiquidGlassWallpaperService`, Settings → "Set Liquid Live Wallpaper") animates behind transparent widgets — the only way to get truly live liquid on a home screen.
+- **Steps**: sensor listener is always unregistered (5 s timeout) and the widget refreshes when a step event lands.
+- **Quick Pill honesty**: Wi-Fi/Bluetooth open system settings (Android forbids app toggles); Torch/DND really toggle. State is re-read on return to the app.
+- **CPU**: the invented `12 + heapRatio*68` fallback is deleted — blocked `/proc/stat` now shows "Unavailable".
+- **Fonts**: all 6 fonts are real bundled OFL files in `res/font` (Inter, Playfair Display, JetBrains Mono, Quicksand, Oswald, DM Serif Display).
+- **Icons**: bolt/play/pause/next/search are vector drawables, not emoji glyphs.
+- **Performance**: rendered widget bitmaps are cached per size/config/data/minute (`GlassRenderCache`, 24 MB LRU); only changed widgets re-run the AGSL pipeline.
+- **Architecture**: the `LiquidWidgetsApp.instance` singleton is gone (use `Context.liquidApp()`); receivers use one `SupervisorJob` application scope; `MusicDataProvider` is its own file.
+- **Privacy**: `QUERY_ALL_PACKAGES` removed — app search uses `queryIntentActivities()` + a `<queries>` block.
+- **Tests**: unit tests for weather TTL/WMO parsing, `/proc/stat` parsing, minute-fill math, and model lookups (`./gradlew testDebugUnitTest` runs in CI).
+
+Honest limits (see `REVIEW_V1.1.md`): the clock/Pomodoro tick once a minute, not once a second; home-screen widgets cannot animate at 60 fps by platform design; API 36 build (Google has not shipped a stable `platforms;android-37` yet).
+
 ## How to Build in Android Studio
 
 1. **Unzip** `LiquidWidgets-Android-Project.zip` and open the `LiquidWidgets` folder in **Android Studio** (Meerkat / Narwhal or newer with JDK 17+).

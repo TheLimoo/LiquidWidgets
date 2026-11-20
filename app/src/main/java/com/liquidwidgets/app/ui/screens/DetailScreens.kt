@@ -34,7 +34,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
 import com.liquidwidgets.app.data.providers.ScreenTimeDataProvider
 import com.liquidwidgets.app.data.providers.SystemStatsDataProvider
@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun WeatherDetailScreen() {
     val context = LocalContext.current
-    val palette by LiquidWidgetsApp.instance.wallpaperSampler.palette.collectAsState()
+    val palette by LocalContext.current.liquidApp().wallpaperSampler.palette.collectAsState()
     val scope = rememberCoroutineScope()
     var snapshot by remember { mutableStateOf<WeatherSnapshot?>(null) }
 
@@ -62,7 +62,7 @@ fun WeatherDetailScreen() {
         ) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.Center) {
                 Text("${snapshot?.tempC ?: "--"}°C", style = MaterialTheme.typography.displayMedium, color = Color.White, fontWeight = FontWeight.Bold)
-                Text(snapshot?.conditionLabel ?: "Fetching Open-Meteo…", color = Color.White.copy(alpha = 0.9f))
+                Text(snapshot?.conditionLabel ?: "No data yet — grant location and tap Refresh", color = Color.White.copy(alpha = 0.9f))
                 Text(
                     "Humidity ${snapshot?.humidityPercent ?: 0}%  •  Wind ${snapshot?.windKmh ?: 0} km/h",
                     color = Color.White.copy(alpha = 0.8f)
@@ -78,7 +78,7 @@ fun WeatherDetailScreen() {
 @Composable
 fun SystemMonitorDetailScreen() {
     val context = LocalContext.current
-    val palette by LiquidWidgetsApp.instance.wallpaperSampler.palette.collectAsState()
+    val palette by LocalContext.current.liquidApp().wallpaperSampler.palette.collectAsState()
     val cpuHistory = remember { mutableStateListOf<Int>() }
     val ramHistory = remember { mutableStateListOf<Int>() }
     var latest by remember { mutableStateOf(SystemStatsDataProvider.read(context)) }
@@ -97,7 +97,7 @@ fun SystemMonitorDetailScreen() {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Live System Monitor", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        GlassGraphCard("CPU Load: ${latest.cpuPercent}%", cpuHistory, Color(0xFF38E8FF), palette)
+        GlassGraphCard("CPU Load: ${latest.cpuPercent?.let { "$it%" } ?: "Unavailable"}", cpuHistory, Color(0xFF38E8FF), palette)
         GlassGraphCard("RAM Usage: ${latest.ramPercent}% (${String.format("%.1f / %.1f GB", latest.ramUsedGb, latest.ramTotalGb)})", ramHistory, Color(0xFFB388FF), palette)
         LiquidGlassSurface(config = LiquidGlassConfig(), wallpaperPalette = palette, modifier = Modifier.fillMaxWidth().height(92.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {

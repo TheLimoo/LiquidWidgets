@@ -5,12 +5,10 @@ import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.wifi.WifiManager
 import android.provider.Settings
-import androidx.core.content.ContextCompat
 
 data class QuickControlsState(
     val wifiOn: Boolean,
@@ -77,21 +75,25 @@ object QuickControlsProvider {
         nm.setInterruptionFilter(next)
     }
 
+    /**
+     * Wi-Fi opens the system Internet panel. Same honesty rule as
+     * Bluetooth: no fake toggle, the user flips the real switch there and
+     * the widget re-reads the real state when they come back.
+     */
     fun openWifiPanel(context: Context) {
         val intent = Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
 
+    /**
+     * Bluetooth opens the system settings page. Android does not let a
+     * normal app toggle Bluetooth (or Wi-Fi) directly, so this never
+     * pretends to toggle — the widget labels say "opens settings".
+     */
     fun openBluetoothSettings(context: Context) {
-        val hasPerm = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.BLUETOOTH_CONNECT
-        ) == PackageManager.PERMISSION_GRANTED
         val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (hasPerm || true) {
-            context.startActivity(intent)
-        }
+        context.startActivity(intent)
     }
 }

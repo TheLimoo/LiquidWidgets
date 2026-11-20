@@ -19,13 +19,21 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * Minute-fill fraction for the rising liquid: the fraction of the current
+ * hour that has passed. (Previously this wrongly used seconds/60, so the
+ * fill reset every minute instead of rising across the hour.)
+ */
+internal fun minuteFillFor(minute: Int): Float =
+    (minute / 60f).coerceIn(0.06f, 0.96f)
+
 class LiquidClockWidget : BaseLiquidGlanceWidget(WidgetType.CLOCK) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val cal = Calendar.getInstance()
         val seconds = cal.get(Calendar.SECOND)
-        val minuteFill = (seconds / 60f).coerceIn(0.06f, 0.96f)
+        val minuteFill = minuteFillFor(cal.get(Calendar.MINUTE))
         val timePattern = if (config.clockUse24Hour) "HH:mm" else "h:mm"
         val timeStr = SimpleDateFormat(timePattern, Locale.getDefault()).format(Date())
         val dateStr = SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date())
@@ -33,7 +41,7 @@ class LiquidClockWidget : BaseLiquidGlanceWidget(WidgetType.CLOCK) {
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "$timeStr|$dateStr|${config.clockAnalogMode}") { canvas, w, h, txt ->
                 // Rising liquid fill inside glass as the minute passes
                 MetaballSimulation.drawLiquidFillTank(
                     canvas = canvas,

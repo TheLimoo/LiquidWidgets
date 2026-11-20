@@ -15,6 +15,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
+import com.liquidwidgets.app.R
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.data.providers.MusicDataProvider
 import com.liquidwidgets.app.engine.MetaballSimulation
@@ -24,7 +25,7 @@ import kotlin.math.sin
 class LiquidMusicWidget : BaseLiquidGlanceWidget(WidgetType.MUSIC) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = MusicDataProvider.read(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
@@ -36,7 +37,8 @@ class LiquidMusicWidget : BaseLiquidGlanceWidget(WidgetType.MUSIC) {
                 config = config,
                 palette = palette,
                 rippleProgress = ripple,
-                customBackdrop = snap.albumArt
+                customBackdrop = snap.albumArt,
+                contentKey = "${snap.title}|${snap.artist}|${snap.isPlaying}"
             ) { canvas, w, h, txt ->
                 // Live liquid audio visualizer wave inside the glass
                 val wavePath = Path()
@@ -67,23 +69,25 @@ class LiquidMusicWidget : BaseLiquidGlanceWidget(WidgetType.MUSIC) {
                 txt.alpha = 215
                 canvas.drawText(snap.artist.take(28), w * 0.08f, h * 0.54f, txt)
 
-                // Play/Pause & Next glass buttons
+                // Play/Pause & Next glass buttons (vector icons, not emoji glyphs)
                 val btnR = (h * 0.18f).coerceIn(24f, 40f)
-                MetaballSimulation.drawLiquidDroplet(
+                MetaballSimulation.drawIconDroplet(
+                    context = context,
                     canvas = canvas,
                     cx = w * 0.72f,
                     cy = h * 0.50f,
                     radius = btnR,
                     tintColor = config.theme.accentArgb.toInt(),
-                    label = if (snap.isPlaying) "❚❚" else "▶"
+                    iconRes = if (snap.isPlaying) R.drawable.ic_pause else R.drawable.ic_play
                 )
-                MetaballSimulation.drawLiquidDroplet(
+                MetaballSimulation.drawIconDroplet(
+                    context = context,
                     canvas = canvas,
                     cx = w * 0.88f,
                     cy = h * 0.50f,
                     radius = btnR * 0.85f,
                     tintColor = config.theme.tintArgb.toInt(),
-                    label = "⏭"
+                    iconRes = R.drawable.ic_next
                 )
             }
 

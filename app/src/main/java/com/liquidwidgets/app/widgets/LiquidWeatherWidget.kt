@@ -20,13 +20,25 @@ import kotlin.math.sin
 class LiquidWeatherWidget : BaseLiquidGlanceWidget(WidgetType.WEATHER) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val weather = WeatherDataProvider.read(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${weather?.tempC}|${weather?.condition}|${weather?.hourly?.joinToString { it.tempC.toString() }}") { canvas, w, h, txt ->
+                val wthr = weather
+                if (wthr == null) {
+                    // No location granted and no cached forecast: never show fake weather.
+                    txt.textAlign = Paint.Align.CENTER
+                    txt.textSize = (h * 0.16f * config.fontSizeScale).coerceIn(20f, 40f)
+                    canvas.drawText("No weather yet", w * 0.5f, h * 0.46f, txt)
+                    txt.textSize = (h * 0.11f).coerceIn(14f, 24f)
+                    txt.alpha = 210
+                    canvas.drawText("Set location in Settings", w * 0.5f, h * 0.64f, txt)
+                    return@renderBitmap
+                }
+                val weather = wthr
                 // Condition-specific real liquid weather physics
                 when (weather.condition) {
                     WeatherCondition.CLEAR -> {
@@ -102,7 +114,7 @@ class LiquidWeatherWidget : BaseLiquidGlanceWidget(WidgetType.WEATHER) {
 
             GlassBitmapSurface(
                 bitmap = bmp,
-                contentDescription = "Liquid Weather ${weather.tempC}° ${weather.conditionLabel}",
+                contentDescription = "Liquid Weather ${weather?.tempC?.let { "$it°" } ?: "no data"} ${weather?.conditionLabel ?: ""}",
                 onTap = broadcastAction(context, WidgetActionReceiver.ACTION_OPEN_WEATHER)
             )
         }

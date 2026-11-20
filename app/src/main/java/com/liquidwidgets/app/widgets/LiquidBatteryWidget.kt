@@ -11,13 +11,14 @@ import androidx.glance.appwidget.provideContent
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.data.providers.BatteryDataProvider
 import com.liquidwidgets.app.engine.MetaballSimulation
+import com.liquidwidgets.app.R
 import com.liquidwidgets.app.receivers.WidgetActionReceiver
 import java.util.Locale
 
 class LiquidBatteryWidget : BaseLiquidGlanceWidget(WidgetType.BATTERY) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = BatteryDataProvider.read(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
@@ -30,7 +31,7 @@ class LiquidBatteryWidget : BaseLiquidGlanceWidget(WidgetType.BATTERY) {
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.percent}|${snap.isCharging}|${snap.wattage}") { canvas, w, h, txt ->
                 MetaballSimulation.drawLiquidFillTank(
                     canvas = canvas,
                     width = w,
@@ -53,8 +54,7 @@ class LiquidBatteryWidget : BaseLiquidGlanceWidget(WidgetType.BATTERY) {
 
                 val statusText = buildString {
                     if (snap.isCharging) {
-                        append("⚡ ")
-                        if (snap.wattage > 0.4f) append(String.format(Locale.US, "%.1fW", snap.wattage))
+                        if (snap.wattage > 0.4f) append(String.format(Locale.US, "Charging %.1fW", snap.wattage))
                         else append("Charging")
                         snap.timeToFullMinutes?.let { append(" · ${it}m left") }
                     } else {
@@ -73,14 +73,15 @@ class LiquidBatteryWidget : BaseLiquidGlanceWidget(WidgetType.BATTERY) {
                 }
 
                 if (snap.isCharging) {
-                    MetaballSimulation.drawLiquidDroplet(
+                    MetaballSimulation.drawIconDroplet(
+                        context = context,
                         canvas = canvas,
                         cx = w * 0.84f,
                         cy = h * 0.24f,
                         radius = (minOf(w, h) * 0.12f).coerceIn(18f, 34f),
                         tintColor = Color.parseColor("#FFE055"),
-                        label = "⚡",
-                        textColor = Color.parseColor("#112233")
+                        iconRes = R.drawable.ic_bolt,
+                        iconTint = Color.parseColor("#112233")
                     )
                 }
             }

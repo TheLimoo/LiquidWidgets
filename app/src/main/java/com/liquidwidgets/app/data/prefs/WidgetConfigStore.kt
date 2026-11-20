@@ -133,6 +133,9 @@ class WidgetConfigStore(private val context: Context) {
     suspend fun getCachedWeatherJson(): String? =
         context.liquidDataStore.data.first()[KEY_WEATHER_CACHE]
 
+    suspend fun getCachedWeatherUpdatedMs(): Long =
+        context.liquidDataStore.data.first()[KEY_WEATHER_UPDATED_MS] ?: 0L
+
     suspend fun setCachedWeatherJson(json: String) {
         context.liquidDataStore.edit {
             it[KEY_WEATHER_CACHE] = json

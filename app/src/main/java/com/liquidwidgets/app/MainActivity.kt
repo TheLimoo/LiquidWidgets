@@ -6,6 +6,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import com.liquidwidgets.app.workers.BatteryAwareScheduler
+import kotlinx.coroutines.launch
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -55,6 +58,17 @@ private val TOP_DESTINATIONS = listOf(
 )
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Re-reads real system state (Wi-Fi/Bluetooth after the user flipped
+     * them in Settings, steps, battery) every time the user comes back.
+     */
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            runCatching { BatteryAwareScheduler.updateAllWidgets(this@MainActivity) }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

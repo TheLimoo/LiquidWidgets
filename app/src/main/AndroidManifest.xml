@@ -27,10 +27,15 @@
     <!-- Boot reschedule for WorkManager & battery-aware receivers -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Query installed apps for Screen Time droplet launch & Quick Pill App Search -->
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
+    <!-- App search + droplet launch use queryIntentActivities() for launcher
+         apps only, so QUERY_ALL_PACKAGES is not needed (removed 2026-11-21).
+         The <queries> block below makes launcher apps visible to the app. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 
     <application
         android:name=".LiquidWidgetsApp"
@@ -85,6 +90,25 @@
         <receiver
             android:name=".receivers.WidgetActionReceiver"
             android:exported="false" />
+
+        <!-- Per-minute clock / Pomodoro ticks via AlarmManager (TIME_TICK cannot be manifest-registered) -->
+        <receiver
+            android:name=".receivers.ClockTickReceiver"
+            android:exported="false" />
+
+        <!-- Optional live liquid-glass wallpaper (Settings -> Set Liquid Live Wallpaper) -->
+        <service
+            android:name=".wallpaper.LiquidGlassWallpaperService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/liquid_wallpaper" />
+        </service>
 
         <!-- 1. Liquid Clock Widget -->
         <receiver

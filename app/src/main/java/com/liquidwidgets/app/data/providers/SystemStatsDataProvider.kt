@@ -7,7 +7,8 @@ import android.os.StatFs
 import java.io.File
 
 data class SystemStatsSnapshot(
-    val cpuPercent: Int,
+    /** null when /proc/stat is blocked: show Unavailable, never a fake %. */
+    val cpuPercent: Int?,
     val ramPercent: Int,
     val ramUsedGb: Float,
     val ramTotalGb: Float,
@@ -49,33 +50,36 @@ object SystemStatsDataProvider {
         )
     }
 
-    private fun readCpuPercent(): Int {
-        // Attempt /proc/stat first; fallback to JVM/process load metric when SELinux blocks /proc/stat
-        val procStat = runCatching {
-            val line = File("/proc/stat").bufferedReader().use { it.readLine() }
-            val parts = line.trim().split(Regex("\\s+")).drop(1).mapNotNull { it.toLongOrNull() }
-            if (parts.size >= 4) {
-                val idle = parts[3] + (parts.getOrNull(4) ?: 0L)
-                val total = parts.sum()
-                val diffTotal = (total - prevTotal).coerceAtLeast(1L)
-                val diffIdle = (idle - prevIdle).coerceAtLeast(0L)
-                prevTotal = total
-                prevIdle = idle
-                if (diffTotal > 0L) {
-                    (((diffTotal - diffIdle) * 100L) / diffTotal).toInt().coerceIn(1, 100)
-                } else {
-                    null
-                }
-            } else {
-                null
-            }
-        }.getOrNull()
+    /**
+     * Pure, unit-tested: parse one "/proc/stat" cpu line into (idle, total) jiffies.
+     * Returns null for a malformed line.
+     */
+    internal fun parseProcStatLine(line: String): Pair<Long, Long>? {
+        val parts = line.trim().split(Regex("\\s+")).drop(1).mapNotNull { it.toLongOrNull() }
+        if (parts.size < 4) return null
+        val idle = parts[3] + (parts.getOrNull(4) ?: 0L)
+        return idle to parts.sum()
+    }
 
-        if (procStat != null) return procStat
-
-        // Safe non-privileged fallback based on available processors and runtime heap pressure
-        val rt = Runtime.getRuntime()
-        val heapRatio = ((rt.totalMemory() - rt.freeMemory()).toFloat() / rt.maxMemory().coerceAtLeast(1L))
-        return (12 + (heapRatio * 68f).toInt()).coerceIn(5, 95)
+    /**
+     * Reads real CPU load from /proc/stat. Returns null when the file is
+     * unreadable (SELinux) or malformed — callers show "Unavailable".
+     * There is intentionally NO heap-based fallback: heap pressure is not
+     * CPU load, and inventing a percentage would be fake data.
+     */
+    private fun readCpuPercent(): Int? {
+        val (idle, total) = runCatching {
+            File("/proc/stat").bufferedReader().use { it.readLine() }
+                ?.let { parseProcStatLine(it) }
+        }.getOrNull() ?: return null
+        val diffTotal = (total - prevTotal).coerceAtLeast(1L)
+        val diffIdle = (idle - prevIdle).coerceAtLeast(0L)
+        prevTotal = total
+        prevIdle = idle
+        return if (diffTotal > 0L) {
+            (((diffTotal - diffIdle) * 100L) / diffTotal).toInt().coerceIn(0, 100)
+        } else {
+            null
+        }
     }
 }

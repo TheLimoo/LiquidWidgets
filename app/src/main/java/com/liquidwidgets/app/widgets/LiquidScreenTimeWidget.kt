@@ -24,13 +24,13 @@ import com.liquidwidgets.app.receivers.WidgetActionReceiver
 class LiquidScreenTimeWidget : BaseLiquidGlanceWidget(WidgetType.SCREEN_TIME) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = ScreenTimeDataProvider.read(context)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.totalMinutesToday}|${snap.topApps.joinToString { it.packageName + it.minutes }}") { canvas, w, h, txt ->
                 MetaballSimulation.drawRisingBubbles(
                     canvas, w, h, h * 0.15f, timeSec, config.bubbleDensity * 0.6f, 0.8f, config.theme.accentArgb.toInt()
                 )

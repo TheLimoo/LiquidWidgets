@@ -19,14 +19,14 @@ import kotlin.math.sin
 class LiquidStepsWidget : BaseLiquidGlanceWidget(WidgetType.STEPS) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
+        val (config, palette, ripple) = loadContextState(context)
         val snap = StepsDataProvider.read(context, config.dailyStepGoal)
         val fraction = (snap.stepsToday.toFloat() / snap.goal).coerceIn(0.05f, 1f)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.stepsToday}|${snap.goal}") { canvas, w, h, txt ->
                 MetaballSimulation.drawLiquidFillTank(
                     canvas = canvas,
                     width = w,

@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import com.liquidwidgets.app.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,7 +93,8 @@ fun LiveLiquidWidgetPreview(
                 val timeStr = SimpleDateFormat(pattern, Locale.getDefault()).format(Date())
                 val dateStr = SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date())
                 val sec = cal.get(Calendar.SECOND)
-                FluidWaveBackdrop(fillFraction = (sec / 60f).coerceIn(0.1f, 0.92f), color = config.theme.tintColor, timeSec = timeSec)
+                // Rising fill follows the MINUTE across the hour, not the second.
+                FluidWaveBackdrop(fillFraction = (cal.get(Calendar.MINUTE) / 60f).coerceIn(0.1f, 0.92f), color = config.theme.tintColor, timeSec = timeSec)
                 Column(
                     modifier = Modifier.fillMaxSize().padding(14.dp),
                     verticalArrangement = Arrangement.Center,
@@ -132,12 +136,23 @@ fun LiveLiquidWidgetPreview(
                         fontWeight = fontWeight,
                         fontSize = (36f * config.fontSizeScale).sp
                     )
-                    Text(
-                        text = if (snap.isCharging) "⚡ ${String.format(Locale.US, "%.1fW", snap.wattage)}"
-                        else "${String.format(Locale.US, "%.1f°C", snap.temperatureC)} • ${snap.healthLabel}",
-                        color = textColor.copy(alpha = 0.85f),
-                        fontSize = 12.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (snap.isCharging) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_bolt),
+                                contentDescription = "Charging",
+                                tint = textColor.copy(alpha = 0.85f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.size(4.dp))
+                        }
+                        Text(
+                            text = if (snap.isCharging) String.format(Locale.US, "Charging %.1fW", snap.wattage)
+                            else "${String.format(Locale.US, "%.1f°C", snap.temperatureC)} • ${snap.healthLabel}",
+                            color = textColor.copy(alpha = 0.85f),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
 
@@ -263,7 +278,20 @@ fun LiveLiquidWidgetPreview(
                         Text(snap.title, color = textColor, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(snap.artist, color = textColor.copy(alpha = 0.8f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Text(if (snap.isPlaying) "❚❚   ⏭" else "▶   ⏭", color = textColor, fontSize = 18.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(
+                            painter = painterResource(if (snap.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                            contentDescription = if (snap.isPlaying) "Pause" else "Play",
+                            tint = textColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Icon(
+                            painter = painterResource(R.drawable.ic_next),
+                            contentDescription = "Next track",
+                            tint = textColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -294,7 +322,7 @@ fun LiveLiquidWidgetPreview(
                 ) {
                     listOf("CPU" to snap.cpuPercent, "RAM" to snap.ramPercent, "DISK" to snap.storagePercent).forEach { (label, pct) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$pct%", color = textColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(if (pct == null) "—" else "$pct%", color = textColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Text(label, color = accent, fontSize = 11.sp)
                         }
                     }
@@ -340,7 +368,16 @@ fun LiveLiquidWidgetPreview(
                             fontSize = 12.sp
                         )
                     }
-                    Text("⌕ Search", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_search),
+                            contentDescription = "Search",
+                            tint = textColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text("Search", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

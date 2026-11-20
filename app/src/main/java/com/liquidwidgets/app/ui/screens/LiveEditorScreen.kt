@@ -39,7 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.BackgroundMode
 import com.liquidwidgets.app.data.model.LiquidFont
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
@@ -57,7 +57,7 @@ fun LiveEditorScreen(
     onSaved: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val app = LiquidWidgetsApp.instance
+    val app = LocalContext.current.liquidApp()
     val scope = rememberCoroutineScope()
 
     var selectedType by remember { mutableStateOf(initialWidgetType) }

@@ -20,7 +20,8 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Box
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.engine.GlassRenderCache
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.engine.LiquidGlassBitmapRenderer
@@ -55,14 +56,20 @@ abstract class BaseLiquidGlanceWidget(
         WidgetActionReceiver.intentFor(context, action, widgetType, packageName, eventId)
     )
 
-    protected suspend fun loadContextState(): Triple<LiquidGlassConfig, WallpaperPalette, Float> {
-        val app = LiquidWidgetsApp.instance
+    protected suspend fun loadContextState(context: Context): Triple<LiquidGlassConfig, WallpaperPalette, Float> {
+        val app = context.liquidApp()
         val cfg = app.configStore.getConfig(widgetType)
         val palette = app.wallpaperSampler.palette.value
         val ripple = rippleProgressFor(app.configStore.getLastRippleMs(widgetType))
         return Triple(cfg, palette, ripple)
     }
 
+    /**
+     * Renders through the AGSL pipeline only when [contentKey] (the widget's
+     * visible data) or the minute bucket changed; otherwise the cached bitmap
+     * is reused. This is what stops every widget update from re-running a
+     * full HardwareRenderer + ImageReader pass for all 10 widgets.
+     */
     protected fun renderBitmap(
         context: Context,
         size: DpSize,
@@ -70,21 +77,27 @@ abstract class BaseLiquidGlanceWidget(
         palette: WallpaperPalette,
         rippleProgress: Float,
         customBackdrop: Bitmap? = null,
+        contentKey: String = "",
         drawer: (Canvas, Float, Float, Paint) -> Unit
     ): Bitmap {
         val (w, h) = dpSizeToPx(context, size)
         val timeSec = (System.currentTimeMillis() % 600_000L) / 1000f
-        return LiquidGlassBitmapRenderer.renderGlassSurface(
-            context = context,
-            widthPx = w,
-            heightPx = h,
-            config = config,
-            palette = palette,
-            timeSec = timeSec,
-            rippleProgress = rippleProgress,
-            customBackdrop = customBackdrop,
-            overlayDrawer = drawer
-        )
+        val minuteBucket = (System.currentTimeMillis() / 60_000L).toInt()
+        val rippleBucket = (rippleProgress * 10f).toInt()
+        val key = "${widgetType.id}|$w|$h|${config.hashCode()}|${palette.hashCode()}|$minuteBucket|$rippleBucket|$contentKey|${customBackdrop?.hashCode() ?: 0}"
+        return GlassRenderCache.getOrRender(key) {
+            LiquidGlassBitmapRenderer.renderGlassSurface(
+                context = context,
+                widthPx = w,
+                heightPx = h,
+                config = config,
+                palette = palette,
+                timeSec = timeSec,
+                rippleProgress = rippleProgress,
+                customBackdrop = customBackdrop,
+                overlayDrawer = drawer
+            )
+        }
     }
 
     @Composable

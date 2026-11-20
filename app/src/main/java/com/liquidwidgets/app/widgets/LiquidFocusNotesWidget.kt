@@ -8,7 +8,7 @@ import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.engine.MetaballSimulation
 import com.liquidwidgets.app.receivers.WidgetActionReceiver
@@ -17,8 +17,8 @@ import java.util.Locale
 class LiquidFocusNotesWidget : BaseLiquidGlanceWidget(WidgetType.FOCUS_NOTES) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (config, palette, ripple) = loadContextState()
-        val endMs = LiquidWidgetsApp.instance.configStore.getFocusEndEpochMs()
+        val (config, palette, ripple) = loadContextState(context)
+        val endMs = context.liquidApp().configStore.getFocusEndEpochMs()
         val now = System.currentTimeMillis()
         val isRunning = endMs > now
         val totalMs = (config.focusDurationMinutes * 60_000L).coerceAtLeast(60_000L)
@@ -28,7 +28,7 @@ class LiquidFocusNotesWidget : BaseLiquidGlanceWidget(WidgetType.FOCUS_NOTES) {
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${if (isRunning) remainingMs / 60_000L else -1}|${config.focusNoteMode}|${config.quickNoteText.hashCode()}") { canvas, w, h, txt ->
                 if (config.focusNoteMode) {
                     // Floating ink note inside clear liquid glass
                     MetaballSimulation.drawRisingBubbles(canvas, w, h, h * 0.1f, timeSec, 0.35f, 0.5f, config.theme.accentArgb.toInt())

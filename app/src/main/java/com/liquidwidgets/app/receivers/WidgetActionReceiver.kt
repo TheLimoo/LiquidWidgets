@@ -6,13 +6,12 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.AlarmClock
 import android.provider.CalendarContract
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.MainActivity
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.data.providers.MusicDataProvider
 import com.liquidwidgets.app.data.providers.QuickControlsProvider
 import com.liquidwidgets.app.workers.BatteryAwareScheduler
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -27,10 +26,11 @@ class WidgetActionReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         val type = WidgetType.fromId(intent.getStringExtra(EXTRA_WIDGET_TYPE))
         val pending = goAsync()
+        val app = context.liquidApp()
 
-        CoroutineScope(Dispatchers.Main).launch {
+        app.applicationScope.launch(Dispatchers.Main) {
             try {
-                val store = LiquidWidgetsApp.instance.configStore
+                val store = app.configStore
                 store.triggerRipple(type)
                 BatteryAwareScheduler.updateWidgetType(context, type)
 
@@ -90,6 +90,10 @@ class WidgetActionReceiver : BroadcastReceiver() {
                         BatteryAwareScheduler.updateWidgetType(context, WidgetType.FOCUS_NOTES)
                     }
                     ACTION_OPEN_NOTES -> openInAppRoute(context, "editor/focus")
+                    // Wi-Fi / Bluetooth: Android 10+ does not let a normal app toggle
+                    // these directly, so the tap honestly opens the system panel
+                    // instead of pretending to toggle. State is re-read from the
+                    // system (and the widget refreshed) when the user comes back.
                     ACTION_TOGGLE_WIFI -> QuickControlsProvider.openWifiPanel(context)
                     ACTION_TOGGLE_BT -> QuickControlsProvider.openBluetoothSettings(context)
                     ACTION_TOGGLE_TORCH -> {

@@ -1,8 +1,10 @@
 package com.liquidwidgets.app.data.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.liquidwidgets.app.R
 
 enum class WidgetType(
     val id: String,
@@ -41,15 +43,19 @@ enum class LiquidShape(val id: String, val label: String, val shaderIndex: Float
 enum class LiquidFont(
     val id: String,
     val label: String,
-    val family: FontFamily,
+    /** Real font file bundled in res/font (OFL, see res/font). Never a system alias. */
+    val fontRes: Int,
     val defaultWeight: Int
 ) {
-    FLUID_SANS("fluid_sans", "Fluid Sans", FontFamily.SansSerif, 600),
-    LIQUID_SERIF("liquid_serif", "Liquid Serif", FontFamily.Serif, 500),
-    DROPLET_MONO("droplet_mono", "Droplet Mono", FontFamily.Monospace, 500),
-    ORGANIC_ROUNDED("organic_rounded", "Organic Rounded", FontFamily.SansSerif, 700),
-    MERCURY_CONDENSED("mercury_condensed", "Mercury Thin", FontFamily.SansSerif, 300),
-    GLASS_DISPLAY("glass_display", "Glass Display", FontFamily.Serif, 700);
+    FLUID_SANS("fluid_sans", "Fluid Sans", R.font.fluid_sans, 600),
+    LIQUID_SERIF("liquid_serif", "Liquid Serif", R.font.liquid_serif, 500),
+    DROPLET_MONO("droplet_mono", "Droplet Mono", R.font.droplet_mono, 500),
+    ORGANIC_ROUNDED("organic_rounded", "Organic Rounded", R.font.organic_rounded, 700),
+    MERCURY_CONDENSED("mercury_condensed", "Mercury Thin", R.font.mercury_condensed, 300),
+    GLASS_DISPLAY("glass_display", "Glass Display", R.font.glass_display, 700);
+
+    /** Compose family built from the bundled font file. */
+    val family: FontFamily get() = FontFamily(Font(fontRes))
 
     fun toFontWeight(overrideWeight: Int): FontWeight = when {
         overrideWeight <= 300 -> FontWeight.Light

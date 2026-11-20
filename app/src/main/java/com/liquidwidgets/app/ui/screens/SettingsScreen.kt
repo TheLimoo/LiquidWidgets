@@ -1,6 +1,8 @@
 package com.liquidwidgets.app.ui.screens
 
 import android.Manifest
+import android.app.WallpaperManager
+import android.content.ComponentName
 import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
@@ -31,7 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
+import com.liquidwidgets.app.wallpaper.LiquidGlassWallpaperService
 import com.liquidwidgets.app.data.providers.CalendarDataProvider
 import com.liquidwidgets.app.data.providers.MusicDataProvider
 import com.liquidwidgets.app.data.providers.ScreenTimeDataProvider
@@ -42,7 +45,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
-    val app = LiquidWidgetsApp.instance
+    val app = LocalContext.current.liquidApp()
     val scope = rememberCoroutineScope()
 
     val pauseOnBatterySaver by app.configStore.observePauseOnBatterySaver().collectAsState(initial = true)
@@ -136,6 +139,38 @@ fun SettingsScreen() {
                 ) {
                     context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                 }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Live Liquid Wallpaper (optional)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "Widgets cannot run a live shader, but a live wallpaper can. " +
+                        "Set the animated liquid-glass wallpaper, then use the Clear Glass theme — " +
+                        "the widgets sit transparently on living liquid.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                FilledTonalButton(
+                    onClick = {
+                        val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
+                            putExtra(
+                                WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                                ComponentName(context, LiquidGlassWallpaperService::class.java)
+                            )
+                        }
+                        runCatching { context.startActivity(intent) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Set Liquid Live Wallpaper")
+                }
+                Text(
+                    "Quick Pill honesty: Wi-Fi and Bluetooth open the system settings — " +
+                        "Android does not let apps toggle them directly. Torch and DND really toggle.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 

@@ -15,6 +15,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
+import com.liquidwidgets.app.R
 import com.liquidwidgets.app.data.model.LiquidShape
 import com.liquidwidgets.app.data.model.WidgetType
 import com.liquidwidgets.app.data.providers.QuickControlsProvider
@@ -24,13 +25,13 @@ import com.liquidwidgets.app.receivers.WidgetActionReceiver
 class LiquidQuickPillWidget : BaseLiquidGlanceWidget(WidgetType.QUICK_PILL) {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val (baseConfig, palette, ripple) = loadContextState()
+        val (baseConfig, palette, ripple) = loadContextState(context)
         val config = baseConfig.copy(shape = LiquidShape.PILL)
         val state = QuickControlsProvider.read(context)
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple) { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${state.wifiOn}|${state.bluetoothOn}|${state.torchOn}|${state.dndOn}") { canvas, w, h, txt ->
                 val toggles = listOf(
                     Triple("Wi-Fi", state.wifiOn, Color.parseColor("#38E8FF")),
                     Triple("BT", state.bluetoothOn, Color.parseColor("#5C9EFF")),
@@ -67,14 +68,23 @@ class LiquidQuickPillWidget : BaseLiquidGlanceWidget(WidgetType.QUICK_PILL) {
                 canvas.drawRoundRect(barRect, h * 0.28f, h * 0.28f, barFill)
                 canvas.drawRoundRect(barRect, h * 0.28f, h * 0.28f, barStroke)
 
-                txt.textAlign = Paint.Align.CENTER
+                val searchIconSize = (h * 0.30f).coerceIn(16f, 28f)
+                val searchText = "Search"
+                txt.textAlign = Paint.Align.LEFT
                 txt.textSize = (h * 0.24f).coerceIn(14f, 24f)
-                canvas.drawText("⌕ Search", (barLeft + barRight) * 0.5f, h * 0.58f, txt)
+                val searchTextWidth = txt.measureText(searchText)
+                val totalW = searchIconSize + 8f + searchTextWidth
+                val startX = (barLeft + barRight) * 0.5f - totalW / 2f
+                MetaballSimulation.drawVectorIcon(
+                    context = context, canvas = canvas, iconRes = R.drawable.ic_search,
+                    cx = startX + searchIconSize / 2f, cy = h * 0.50f, sizePx = searchIconSize
+                )
+                canvas.drawText(searchText, startX + searchIconSize + 8f, h * 0.58f, txt)
             }
 
             GlassBitmapSurface(
                 bitmap = bmp,
-                contentDescription = "Quick Glass Pill Controls",
+                contentDescription = "Quick Glass Pill: Wi-Fi and Bluetooth open system settings, Torch and DND toggle",
                 onTap = broadcastAction(context, WidgetActionReceiver.ACTION_OPEN_SEARCH)
             ) {
                 Row(modifier = GlanceModifier.fillMaxSize()) {

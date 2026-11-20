@@ -25,7 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
 import com.liquidwidgets.app.data.model.LiquidThemes
 import com.liquidwidgets.app.ui.components.LiquidGlassSurface
@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ThemesScreen(columns: Int) {
     val context = LocalContext.current
-    val app = LiquidWidgetsApp.instance
+    val app = LocalContext.current.liquidApp()
     val palette by app.wallpaperSampler.palette.collectAsState()
     val scope = rememberCoroutineScope()
 

@@ -14,6 +14,8 @@ import android.graphics.RenderNode
 import android.graphics.Typeface
 import android.media.ImageReader
 import android.os.Build
+import android.util.LruCache
+import androidx.core.content.res.ResourcesCompat
 import com.liquidwidgets.app.data.model.LiquidFont
 import com.liquidwidgets.app.data.model.LiquidGlassConfig
 import com.liquidwidgets.app.data.model.LiquidShape
@@ -24,6 +26,29 @@ import com.liquidwidgets.app.data.model.LiquidShape
  * widget-specific fluid layers and typography inside the glass shape.
  */
 object LiquidGlassBitmapRenderer {
+
+    /** Backdrops are re-created at most once per minute per size/palette. */
+    private val backdropCache = object : LruCache<String, Bitmap>(6 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+        override fun entryRemoved(evicted: Boolean, key: String, oldValue: Bitmap, newValue: Bitmap?) {
+            if (evicted) oldValue.recycle()
+        }
+    }
+
+    private fun cachedBackdrop(
+        context: Context,
+        w: Int,
+        h: Int,
+        palette: WallpaperPalette,
+        timeSec: Float
+    ): Bitmap {
+        val minuteBucket = (timeSec / 60f).toInt()
+        val key = "$w|$h|${palette.hashCode()}|$minuteBucket"
+        backdropCache.get(key)?.let { return it }
+        val bmp = WallpaperSampler(context).createBackdropBitmap(w, h, palette, timeSec * 0.25f)
+        backdropCache.put(key, bmp)
+        return bmp
+    }
 
     fun renderGlassSurface(
         context: Context,
@@ -41,7 +66,7 @@ object LiquidGlassBitmapRenderer {
         val w = widthPx.coerceIn(180, 1280)
         val h = heightPx.coerceIn(96, 1280)
 
-        val backdrop = customBackdrop ?: WallpaperSampler(context).createBackdropBitmap(w, h, palette, timeSec * 0.25f)
+        val backdrop = customBackdrop ?: cachedBackdrop(context, w, h, palette, timeSec)
         val baseGlass = renderAgslHardwareBitmap(
             context = context,
             backdrop = backdrop,
@@ -57,7 +82,7 @@ object LiquidGlassBitmapRenderer {
 
         val output = baseGlass.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(output)
-        val textPaint = createTextPaint(config, palette)
+        val textPaint = createTextPaint(context, config, palette)
 
         // Draw widget-specific fluid interior & data
         overlayDrawer(canvas, w.toFloat(), h.toFloat(), textPaint)
@@ -69,7 +94,7 @@ object LiquidGlassBitmapRenderer {
         }
         canvas.drawBitmap(mask, 0f, 0f, maskPaint)
         mask.recycle()
-        if (customBackdrop == null) backdrop.recycle()
+        // NOTE: a cached backdrop must NOT be recycled — it is reused by later renders.
         baseGlass.recycle()
 
         return output
@@ -190,8 +215,12 @@ object LiquidGlassBitmapRenderer {
         }
     }
 
-    fun createTextPaint(config: LiquidGlassConfig, palette: WallpaperPalette): Paint {
-        val baseFamily = when (config.font) {
+    fun createTextPaint(context: Context, config: LiquidGlassConfig, palette: WallpaperPalette): Paint {
+        // Real bundled font file; fall back to a system typeface only if loading fails.
+        val bundled = runCatching {
+            ResourcesCompat.getFont(context, config.font.fontRes)
+        }.getOrNull()
+        val baseFamily = bundled ?: when (config.font) {
             LiquidFont.LIQUID_SERIF, LiquidFont.GLASS_DISPLAY -> Typeface.SERIF
             LiquidFont.DROPLET_MONO -> Typeface.MONOSPACE
             else -> Typeface.SANS_SERIF
@@ -206,7 +235,7 @@ object LiquidGlassBitmapRenderer {
         }
         return Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = textColor
-            typeface = Typeface.create(baseFamily, style)
+            typeface = if (bundled != null) Typeface.create(bundled, style) else Typeface.create(baseFamily, style)
             setShadowLayer(8f, 0f, 3f, Color.argb(120, 0, 12, 26))
         }
     }

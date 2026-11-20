@@ -10,6 +10,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RadialGradient
 import android.graphics.Shader
+import android.graphics.drawable.BitmapDrawable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,48 @@ class WallpaperSampler(private val context: Context) {
     private val _palette = MutableStateFlow(WallpaperPalette())
     val palette: StateFlow<WallpaperPalette> = _palette.asStateFlow()
 
+    /**
+     * The REAL wallpaper bitmap (scaled down, max 1080px on the long edge),
+     * refreshed together with the palette. Null when the system will not
+     * hand it out — only then does the gradient fallback apply.
+     */
+    @Volatile
+    var realWallpaperBitmap: Bitmap? = null
+        private set
+
+    private fun refreshRealWallpaperBitmap() {
+        realWallpaperBitmap = runCatching {
+            val wm = WallpaperManager.getInstance(context)
+            val drawable = wm.drawable ?: return@runCatching null
+            val src = (drawable as? BitmapDrawable)?.bitmap ?: return@runCatching null
+            val scale = (1080f / maxOf(src.width, src.height)).coerceAtMost(1f)
+            if (scale >= 1f) src.copy(Bitmap.Config.ARGB_8888, false)
+            else Bitmap.createScaledBitmap(
+                src,
+                (src.width * scale).toInt().coerceAtLeast(64),
+                (src.height * scale).toInt().coerceAtLeast(64),
+                true
+            )
+        }.getOrNull()
+    }
+
+    /** Centre-crop of the real wallpaper for a widget of [width]x[height], or null. */
+    fun realWallpaperCrop(width: Int, height: Int): Bitmap? {
+        val src = realWallpaperBitmap ?: return null
+        if (src.isRecycled) return null
+        val w = width.coerceAtLeast(64)
+        val h = height.coerceAtLeast(64)
+        val scale = maxOf(w.toFloat() / src.width, h.toFloat() / src.height)
+        val scaledW = (src.width * scale).toInt()
+        val scaledH = (src.height * scale).toInt()
+        val scaled = Bitmap.createScaledBitmap(src, scaledW, scaledH, true)
+        val left = ((scaledW - w) / 2).coerceAtLeast(0)
+        val top = ((scaledH - h) / 2).coerceAtLeast(0)
+        val cropped = Bitmap.createBitmap(scaled, left, top, w.coerceAtMost(scaledW), h.coerceAtMost(scaledH))
+        if (scaled != cropped) scaled.recycle()
+        return cropped
+    }
+
     fun refreshFromWallpaper(): WallpaperPalette {
         val wm = WallpaperManager.getInstance(context)
         val colors: WallpaperColors? = runCatching {
@@ -70,12 +113,15 @@ class WallpaperSampler(private val context: Context) {
             WallpaperPalette()
         }
         _palette.value = newPalette
+        refreshRealWallpaperBitmap()
         return newPalette
     }
 
     /**
-     * Generates a rich optical backdrop bitmap derived from the live wallpaper palette
-     * (or a preview wallpaper in the in-app Editor) for AGSL refraction sampling.
+     * Backdrop bitmap for AGSL refraction sampling. First choice is a crop
+     * of the REAL wallpaper bitmap, so the glass bends the user's actual
+     * wallpaper. The palette-derived gradient with luminous orbs is only
+     * the fallback for when the system will not share the wallpaper image.
      */
     fun createBackdropBitmap(
         width: Int,
@@ -83,6 +129,7 @@ class WallpaperSampler(private val context: Context) {
         palette: WallpaperPalette = _palette.value,
         seedPhase: Float = 0f
     ): Bitmap {
+        realWallpaperCrop(width, height)?.let { return it }
         val w = width.coerceAtLeast(64)
         val h = height.coerceAtLeast(64)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)

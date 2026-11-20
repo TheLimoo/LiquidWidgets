@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
-import com.liquidwidgets.app.LiquidWidgetsApp
+import com.liquidwidgets.app.liquidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -32,20 +32,39 @@ data class WeatherSnapshot(
 )
 
 /**
- * Fetches live weather from Open-Meteo (free, no API key) and caches offline in DataStore.
+ * Fetches live weather from Open-Meteo (free, no API key) with a 30-minute
+ * cache TTL. Returns null when there is no location and no usable cache —
+ * the widget shows "Set location" instead of inventing weather. There is no
+ * hardcoded fallback city or temperature anywhere in this file.
  */
 object WeatherDataProvider {
 
-    suspend fun read(context: Context, forceNetwork: Boolean = false): WeatherSnapshot =
-        withContext(Dispatchers.IO) {
-            val store = LiquidWidgetsApp.instance.configStore
-            val cachedJson = store.getCachedWeatherJson()
+    const val CACHE_TTL_MS: Long = 30 * 60 * 1000L
 
-            if (!forceNetwork && cachedJson != null) {
+    /** Pure and unit-tested: is a cached forecast written at [updatedMs] still fresh? */
+    internal fun isCacheFresh(updatedMs: Long, nowMs: Long): Boolean =
+        updatedMs > 0L && (nowMs - updatedMs) < CACHE_TTL_MS
+
+    suspend fun read(context: Context, forceNetwork: Boolean = false): WeatherSnapshot? =
+        withContext(Dispatchers.IO) {
+            val store = context.liquidApp().configStore
+            val cachedJson = store.getCachedWeatherJson()
+            val cachedAt = store.getCachedWeatherUpdatedMs()
+
+            // Fresh cache wins (unless the detail screen explicitly forces a refresh).
+            if (!forceNetwork && cachedJson != null && isCacheFresh(cachedAt, System.currentTimeMillis())) {
                 parseOpenMeteoJson(cachedJson, isCached = true)?.let { return@withContext it }
             }
 
-            val (lat, lon, label) = resolveLocation(context)
+            val location = resolveLocation(context)
+                ?: return@withContext if (cachedJson != null) {
+                    // No location right now, but a stale forecast beats no forecast.
+                    parseOpenMeteoJson(cachedJson, isCached = true)
+                } else {
+                    null
+                }
+            val (lat, lon, label) = location
+
             val endpoint = "https://api.open-meteo.com/v1/forecast" +
                 "?latitude=$lat&longitude=$lon" +
                 "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m" +
@@ -70,44 +89,32 @@ object WeatherDataProvider {
                 parseOpenMeteoJson(wrapped, isCached = false)?.let { return@withContext it }
             }
 
+            // Network failed: fall back to the stale cache if one exists, else null.
             if (cachedJson != null) {
                 parseOpenMeteoJson(cachedJson, isCached = true)?.let { return@withContext it }
             }
-
-            WeatherSnapshot(
-                tempC = 21,
-                condition = WeatherCondition.CLEAR,
-                conditionLabel = "Offline · Tap to refresh",
-                humidityPercent = 52,
-                windKmh = 10,
-                locationLabel = label,
-                hourly = listOf(
-                    HourlyBubble("Now", 21, WeatherCondition.CLEAR),
-                    HourlyBubble("+1h", 22, WeatherCondition.CLEAR),
-                    HourlyBubble("+2h", 22, WeatherCondition.CLOUDY),
-                    HourlyBubble("+3h", 20, WeatherCondition.CLOUDY)
-                ),
-                isCached = true
-            )
+            null
         }
 
-    private fun resolveLocation(context: Context): Triple<Double, Double, String> {
+    /**
+     * Last-known device location only. Returns null when location permission
+     * is missing or the system has no last-known fix — callers must show
+     * "Set location", never a hardcoded city.
+     */
+    private fun resolveLocation(context: Context): Triple<Double, Double, String>? {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        if (granted) {
-            val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            val loc = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                ?: lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            if (loc != null) {
-                return Triple(loc.latitude, loc.longitude, "Local Weather")
-            }
-        }
-        return Triple(39.9612, -82.9988, "Columbus (Grant Location)")
+        if (!granted) return null
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val loc = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            ?: lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            ?: return null
+        return Triple(loc.latitude, loc.longitude, "Local Weather")
     }
 
-    private fun parseOpenMeteoJson(raw: String, isCached: Boolean): WeatherSnapshot? {
+    internal fun parseOpenMeteoJson(raw: String, isCached: Boolean): WeatherSnapshot? {
         return runCatching {
             val root = JSONObject(raw)
             val current = root.getJSONObject("current")
@@ -148,7 +155,7 @@ object WeatherDataProvider {
         }.getOrNull()
     }
 
-    private fun mapWmoCode(code: Int): Pair<WeatherCondition, String> = when (code) {
+    internal fun mapWmoCode(code: Int): Pair<WeatherCondition, String> = when (code) {
         0 -> WeatherCondition.CLEAR to "Clear Sky"
         1, 2, 3 -> WeatherCondition.CLOUDY to "Partly Cloudy"
         45, 48 -> WeatherCondition.CLOUDY to "Misty Fog"
