@@ -1,5 +1,8 @@
 package com.liquidwidgets.app
 
+import com.liquidwidgets.app.data.providers.JBool
+import com.liquidwidgets.app.data.providers.JObj
+import com.liquidwidgets.app.data.providers.MiniJson
 import com.liquidwidgets.app.data.providers.WeatherCondition
 import com.liquidwidgets.app.data.providers.WeatherDataProvider
 import org.junit.Assert.assertEquals
