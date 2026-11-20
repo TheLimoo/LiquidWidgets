@@ -87,7 +87,8 @@ fun SystemMonitorDetailScreen() {
         while (true) {
             val s = SystemStatsDataProvider.read(context)
             latest = s
-            cpuHistory.add(s.cpuPercent)
+            // CPU is null when /proc/stat is blocked: skip the point, never fake one.
+            s.cpuPercent?.let { cpuHistory.add(it) }
             ramHistory.add(s.ramPercent)
             if (cpuHistory.size > 30) cpuHistory.removeAt(0)
             if (ramHistory.size > 30) ramHistory.removeAt(0)

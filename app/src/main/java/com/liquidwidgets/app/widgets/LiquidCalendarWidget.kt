@@ -23,7 +23,7 @@ class LiquidCalendarWidget : BaseLiquidGlanceWidget(WidgetType.CALENDAR) {
 
         provideContent {
             val size = LocalSize.current
-            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.events.joinToString { it.id.toString() + it.title }}") { canvas, w, h, txt ->
+            val bmp = renderBitmap(context, size, config, palette, ripple, contentKey = "${snap.events.joinToString { it.eventId.toString() + it.title }}") { canvas, w, h, txt ->
                 if (!snap.hasPermission) {
                     MetaballSimulation.drawLiquidFillTank(
                         canvas, w, h, 0.28f, timeSec, config.theme.tintArgb.toInt(), config.theme.accentArgb.toInt(), 0.35f, 0.35f

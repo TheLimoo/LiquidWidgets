@@ -10,6 +10,7 @@ import android.hardware.SensorManager
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.updateAll
 import com.liquidwidgets.app.liquidApp
 import com.liquidwidgets.app.widgets.LiquidStepsWidget
 import kotlinx.coroutines.Dispatchers
