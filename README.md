@@ -31,8 +31,8 @@ A widget-first Android application built in **Kotlin**, **Jetpack Compose**, **J
 
 1. **Unzip** `LiquidWidgets-Android-Project.zip` and open the `LiquidWidgets` folder in **Android Studio** (Meerkat / Narwhal or newer with JDK 17+).
 2. **SDK Requirements**:
-   - The project is configured for **Android 17 (`compileSdk = 37`, `targetSdk = 37`, `minSdk = 33`)**.
-   - Install Android SDK Platform 37 via **Tools → SDK Manager** (if you are testing on Android 16 / API 36 before installing API 37 preview, temporarily set `compileSdk = 36` and `targetSdk = 36` in `app/build.gradle.kts`).
+   - The project targets **Android 17 devices** but is compiled against **API 36 (`compileSdk = 36`, `targetSdk = 36`, `minSdk = 33`)** — Google has not published a stable `platforms;android-37` package yet (verified 2026-11-20: highest stable platform in dl.google.com/android/repository/repository2-1.xml is android-36), so CI cannot install API 37. Bump both back to 37 once the stable platform ships; no code uses API-37-only APIs.
+   - Install Android SDK Platform 36 via **Tools → SDK Manager**.
 3. **Sync & Build**:
    - Let Gradle sync (`gradle/libs.versions.toml` manages all versions).
    - Connect an Android 13–17 device or start an emulator and click **Run (`app`)**, or build from terminal:
